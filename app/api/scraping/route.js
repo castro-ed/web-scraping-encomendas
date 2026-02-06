@@ -1,7 +1,10 @@
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import chromium from '@sparticuz/chromium-min';
 
 const cache = new Map(); // Cache simples na memória (armazenando os resultados por 5 minutos)
+
+// URL do binário do Chromium compatível com Vercel
+const CHROMIUM_REMOTE_URL = 'https://github.com/nicholaschiang/chromium/releases/download/v129.0.0/chromium-v129.0.0-pack.tar';
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url); // Obtém os parâmetros de consulta da URL
@@ -43,15 +46,10 @@ export async function GET(req) {
     // Lançando o Puppeteer com as configurações apropriadas para Vercel e ambientes serverless
     const browser = await puppeteer.launch({
       headless: chromium.headless,
-      args: process.env.VERCEL
-        ? chromium.args
-        : [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-          ],
+      args: chromium.args,
       executablePath: process.env.VERCEL
-        ? await chromium.executablePath()
-        : 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', // Caminho local do Chrome no Windows
+        ? await chromium.executablePath(CHROMIUM_REMOTE_URL)
+        : 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
       defaultViewport: chromium.defaultViewport,
     });
 
