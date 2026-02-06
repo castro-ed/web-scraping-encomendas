@@ -47,7 +47,7 @@ export async function GET(req) {
         '--disable-setuid-sandbox', // Outro parâmetro para garantir segurança e compatibilidade
       ],
       executablePath: process.env.VERCEL
-        ? '/opt/bin/chromium'  // Usando o caminho correto para o Chromium no Vercel
+        ? '/opt/bin/chromium'  // Caminho para o Chromium no Vercel
         : puppeteer.executablePath(),  // Se localmente, utiliza o caminho do Puppeteer instalado
       defaultViewport: null, // Usa o tamanho padrão de viewport do Puppeteer
       userDataDir: '/tmp/puppeteer_data',  // Diretório temporário no Vercel para armazenar dados do navegador
