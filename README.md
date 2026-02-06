@@ -16,9 +16,10 @@ O objetivo principal é buscar encomendas vinculadas a um CPF e apresentá-las a
 
 ### **Frontend**
 
-- **Next.js**: Utilizamos as API Routes do Next.js para realizar o scraping diretamente no backend da aplicação.
+- **Next.js**: Framework React utilizado para toda a aplicação.
+- **TypeScript**: O projeto utiliza tipagem estática rigorosa para garantir segurança e escalabilidade.
 - **TailwindCSS**: Para estilização da interface.
-- **React Hooks**: Utilizamos hooks do React (`useState`) para gerenciar os estados da aplicação, como o CPF do usuário, os dados das encomendas e os estados de carregamento e erro.
+- **React Hooks**: Gerenciamento de estado e efeitos colaterais.
 
 ### **Backend / Web Scraping**
 
@@ -107,11 +108,16 @@ O código detecta automaticamente o ambiente e usa o método apropriado.
 
 #### **Frontend**:
 
-- O frontend foi construído com **Next.js** utilizando **React** e **TailwindCSS**. O código foi organizado de maneira simples e funcional.
-- Utilizamos o estado do React para gerenciar a entrada do CPF, o estado de carregamento, os erros e os dados das encomendas.
+- **Arquitetura de Componentes**: A interface foi dividida em componentes reutilizáveis e organizados em `app/components/`:
+  - `SearchForm`: Formulário de busca.
+  - `EncomendaTable`: Listagem de resultados.
+  - `EncomendaDetails`: Visualização detalhada.
+  - `LoadingSpinner`: Feedback visual.
+- **Tipagem**: Definição clara de interfaces em `app/types/` para garantir consistência dos dados.
 
 #### **Backend (Web Scraping)**:
 
+- **TypeScript**: Implementado em `app/api/scraping/route.ts` com tipagem completa para requisições e respostas.
 - Utilizamos **Puppeteer** para fazer o scraping da página de rastreamento de encomendas.
 - O backend é implementado dentro das **API Routes** do Next.js.
 - O scraping é feito de maneira assíncrona, e a resposta é enviada ao frontend com os dados extraídos.
