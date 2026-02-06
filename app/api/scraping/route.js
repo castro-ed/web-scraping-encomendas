@@ -1,10 +1,6 @@
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium-min';
 
 const cache = new Map(); // Cache simples na memória (armazenando os resultados por 5 minutos)
-
-// URL do binário do Chromium compatível com Vercel (oficial @sparticuz/chromium)
-const CHROMIUM_REMOTE_URL = 'https://github.com/Sparticuz/chromium/releases/download/v129.0.0/chromium-v129.0.0-pack.tar';
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url); // Obtém os parâmetros de consulta da URL
@@ -43,15 +39,26 @@ export async function GET(req) {
   try {
     console.log("Acessando a página de rastreamento...");
 
-    // Lançando o Puppeteer com as configurações apropriadas para Vercel e ambientes serverless
-    const browser = await puppeteer.launch({
-      headless: chromium.headless,
-      args: chromium.args,
-      executablePath: process.env.VERCEL
-        ? await chromium.executablePath(CHROMIUM_REMOTE_URL)
-        : 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      defaultViewport: chromium.defaultViewport,
-    });
+    let browser;
+    
+    if (process.env.VERCEL) {
+      // Em produção (Vercel): conectar ao Browserless.io
+      const browserlessToken = process.env.BROWSERLESS_TOKEN;
+      if (!browserlessToken) {
+        throw new Error('BROWSERLESS_TOKEN não configurado nas variáveis de ambiente');
+      }
+      
+      browser = await puppeteer.connect({
+        browserWSEndpoint: `wss://chrome.browserless.io?token=${browserlessToken}`,
+      });
+    } else {
+      // Em desenvolvimento local: usar Chrome instalado
+      browser = await puppeteer.launch({
+        headless: true,
+        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+    }
 
     const page = await browser.newPage(); // Cria uma nova aba no navegador
 
