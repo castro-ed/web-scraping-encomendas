@@ -46,7 +46,7 @@ export async function GET(req) {
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        ...(process.env.VERCEL ? [] : []) // Vercel não necessita de argumentos específicos aqui
+        ...(process.env.VERCEL ? [] : []) // Se estiver no Vercel, usa o Chrome otimizado para AWS Lambda
       ],
       executablePath: puppeteer.executablePath(),  // Caminho do Puppeteer localmente
       defaultViewport: null, // Usando o padrão de viewport do Puppeteer
