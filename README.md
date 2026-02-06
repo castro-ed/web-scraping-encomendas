@@ -63,7 +63,69 @@ A solução é usar o **Browserless.io** - um serviço de browser na nuvem que o
 | **Local**             | Usa o Chrome instalado na máquina       |
 | **Vercel (Produção)** | Conecta ao Browserless.io via WebSocket |
 
+### Execução Local vs Produção
+
+| Ambiente              | Método                                  |
+| --------------------- | --------------------------------------- |
+| **Local**             | Usa o Chrome instalado na máquina       |
+| **Vercel (Produção)** | Conecta ao Browserless.io via WebSocket |
+
 O código detecta automaticamente o ambiente e usa o método apropriado.
+
+## Documentação da API
+
+A aplicação expõe um endpoint REST para realizar o scraping das encomendas.
+
+### Endpoint: `GET /api/scraping`
+
+Este endpoint realiza a busca das encomendas vinculadas a um CPF.
+
+#### Parâmetros de Requisição
+
+| Parâmetro | Tipo     | Obrigatório | Descrição                                           |
+| --------- | -------- | ----------- | --------------------------------------------------- |
+| `cpf`     | `string` | Sim         | O CPF do destinatário (apenas números, 11 dígitos). |
+
+#### Exemplo de Requisição
+
+```bash
+curl "https://web-scraping-encomendas.vercel.app/api/scraping?cpf=00644516151"
+```
+
+#### Respostas
+
+**Sucesso (200 OK)**
+
+```json
+{
+  "status": "sucesso",
+  "data": [
+    {
+      "numero": "001",
+      "data": "APARECIDA DE GOIANIA / GO 16/01/26 12:56",
+      "status": "MERCADORIA ENTREGUE...",
+      "comentarios": "..." // opcional
+    }
+  ],
+  "message": "Encomendas extraídas com sucesso!"
+}
+```
+
+**Erro - CPF Inválido (400 Bad Request)**
+
+```json
+{
+  "error": "CPF inválido. Deve conter 11 dígitos."
+}
+```
+
+**Erro - Não Encontrado (404 Not Found)**
+
+```json
+{
+  "error": "Nenhuma encomenda encontrada para este CPF."
+}
+```
 
 ## Como Rodar Localmente
 
