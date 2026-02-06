@@ -63,69 +63,7 @@ A solução é usar o **Browserless.io** - um serviço de browser na nuvem que o
 | **Local**             | Usa o Chrome instalado na máquina       |
 | **Vercel (Produção)** | Conecta ao Browserless.io via WebSocket |
 
-### Execução Local vs Produção
-
-| Ambiente              | Método                                  |
-| --------------------- | --------------------------------------- |
-| **Local**             | Usa o Chrome instalado na máquina       |
-| **Vercel (Produção)** | Conecta ao Browserless.io via WebSocket |
-
 O código detecta automaticamente o ambiente e usa o método apropriado.
-
-## Documentação da API
-
-A aplicação expõe um endpoint REST para realizar o scraping das encomendas.
-
-### Endpoint: `GET /api/scraping`
-
-Este endpoint realiza a busca das encomendas vinculadas a um CPF.
-
-#### Parâmetros de Requisição
-
-| Parâmetro | Tipo     | Obrigatório | Descrição                                           |
-| --------- | -------- | ----------- | --------------------------------------------------- |
-| `cpf`     | `string` | Sim         | O CPF do destinatário (apenas números, 11 dígitos). |
-
-#### Exemplo de Requisição
-
-```bash
-curl "https://web-scraping-encomendas.vercel.app/api/scraping?cpf=00644516151"
-```
-
-#### Respostas
-
-**Sucesso (200 OK)**
-
-```json
-{
-  "status": "sucesso",
-  "data": [
-    {
-      "numero": "001",
-      "data": "APARECIDA DE GOIANIA / GO 16/01/26 12:56",
-      "status": "MERCADORIA ENTREGUE...",
-      "comentarios": "..." // opcional
-    }
-  ],
-  "message": "Encomendas extraídas com sucesso!"
-}
-```
-
-**Erro - CPF Inválido (400 Bad Request)**
-
-```json
-{
-  "error": "CPF inválido. Deve conter 11 dígitos."
-}
-```
-
-**Erro - Não Encontrado (404 Not Found)**
-
-```json
-{
-  "error": "Nenhuma encomenda encontrada para este CPF."
-}
-```
 
 ## Como Rodar Localmente
 
@@ -195,3 +133,12 @@ Para otimizar o desempenho e evitar a repetição de requisições ao scraping p
 - **Erro no scraping**: Caso o scraping falhe (exemplo: página fora do ar ou estrutura alterada), o sistema exibe uma mensagem de erro explicativa.
 - **Erros do servidor**: Caso algo inesperado aconteça no backend, o sistema também retorna uma mensagem de erro amigável para o usuário.
 - **Erro de configuração**: Se o `BROWSERLESS_TOKEN` não estiver configurado no Vercel, o sistema retorna uma mensagem indicando a necessidade de configuração.
+
+## Diferenciais Técnicos e Robustez
+
+Para garantir que a aplicação funcione de forma confiável em diferentes cenários, foram implementadas as seguintes estratégias:
+
+- **Estratégias Anti-Flake**: O scraper utiliza `networkidle2` e tratamento de `dialogs` (alerts) para garantir que a página carregou completamente e não trave com pop-ups inesperados.
+- **Fallbacks de UI**: Caso a interação via clique falhe (comum em SPAs), há um fallback para execução via JavaScript direto no contexto da página.
+- **Compatibilidade Cross-Platform**: O backend detecta automaticamente se está rodando no Windows, Linux ou macOS para definir o caminho do executável do Chrome, facilitando o teste por outros desenvolvedores.
+- **Tipagem Estrita**: Todo o fluxo de dados, do scraping à interface, é tipado com TypeScript para evitar erros em tempo de execução.

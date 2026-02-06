@@ -42,9 +42,9 @@ export default function Home() {
       const res = await fetch(`/api/scraping?cpf=${cpf}`);
       const data: ScrapingResponse = await res.json();
 
-      if (res.ok) {
-        // Se a requisição for bem-sucedida, verifica se há encomendas retornadas
-        if (data.data && data.data.length > 0) {
+      if (res.ok && 'data' in data) {
+        // Se a requisição for bem-sucedida e tiver dados
+        if (data.data.length > 0) {
           // Armazena as encomendas no estado
           setEncomendas(data.data);
         } else {
@@ -52,7 +52,11 @@ export default function Home() {
         }
       } else {
         // Em caso de erro na requisição, exibe a mensagem de erro
-        setError(data.error || 'Erro ao realizar rastreamento');
+        if ('error' in data) {
+          setError(data.error);
+        } else {
+          setError('Erro ao realizar rastreamento');
+        }
       }
     } catch {
       // Caso ocorra um erro na requisição (exemplo: servidor fora do ar), exibe a mensagem de erro

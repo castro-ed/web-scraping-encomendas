@@ -21,7 +21,7 @@ export default function EncomendaTable({ encomendas, onShowDetails }: EncomendaT
         </thead>
         <tbody>
           {encomendas.map((encomenda, index) => (
-            <tr key={index} className="border-b transition duration-200">
+            <tr key={`${encomenda.numero}-${index}`} className="border-b transition duration-200">
               <td className="px-6 py-4">{encomenda.numero}</td>
               <td className="px-6 py-4">{encomenda.data}</td>
               <td className="px-6 py-4">{encomenda.status}</td>

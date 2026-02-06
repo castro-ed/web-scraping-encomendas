@@ -1,6 +1,6 @@
 import puppeteer, { Browser, Page } from 'puppeteer-core';
 import { NextRequest } from 'next/server';
-import { Encomenda } from '../../types';
+import { Encomenda, ScrapingResponse, ScrapingSuccessResponse, ScrapingErrorResponse } from '../../types';
 
 // Cache simples na memória (armazenando os resultados por 5 minutos)
 interface CacheEntry {
@@ -10,28 +10,19 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 
-// Tipagem para a resposta da API
-interface ApiResponse {
-  status?: string;
-  data?: Encomenda[];
-  message?: string;
-  error?: string;
-  details?: string;
-}
-
 export async function GET(req: NextRequest): Promise<Response> {
   const { searchParams } = new URL(req.url);
   const cpf = searchParams.get('cpf');
 
   // Validação do CPF: Verifica se foi passado na requisição
   if (!cpf) {
-    const response: ApiResponse = { error: 'CPF é necessário' };
+    const response: ScrapingErrorResponse = { error: 'CPF é necessário' };
     return new Response(JSON.stringify(response), { status: 400 });
   }
 
   // Validação adicional para garantir que o CPF tenha 11 dígitos
   if (!/^\d{11}$/.test(cpf)) {
-    const response: ApiResponse = { error: 'CPF inválido. Deve conter 11 dígitos.' };
+    const response: ScrapingErrorResponse = { error: 'CPF inválido. Deve conter 11 dígitos.' };
     return new Response(JSON.stringify(response), { status: 400 });
   }
 
@@ -42,7 +33,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 
     // Verifica se os dados no cache ainda são válidos (5 minutos)
     if (currentTime - cachedData.timestamp < 5 * 60 * 1000) {
-      const response: ApiResponse = { status: 'sucesso', data: cachedData.data };
+      const response: ScrapingSuccessResponse = { status: 'sucesso', data: cachedData.data, message: 'Dados retornados do cache' };
       return new Response(JSON.stringify(response), { status: 200 });
     }
   }
@@ -63,61 +54,107 @@ export async function GET(req: NextRequest): Promise<Response> {
         browserWSEndpoint: `wss://chrome.browserless.io?token=${browserlessToken}`,
       });
     } else {
-      // Em desenvolvimento local: usar Chrome instalado
+      // Em desenvolvimento local: detecção automática do caminho do Chrome
+      // 1. Tenta usar variável de ambiente CHROME_PATH
+      // 2. Se não, tenta caminhos padrão por sistema operacional
+      let executablePath = process.env.CHROME_PATH;
+
+      if (!executablePath) {
+        if (process.platform === 'win32') {
+          executablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+        } else if (process.platform === 'linux') {
+          executablePath = '/usr/bin/google-chrome';
+        } else if (process.platform === 'darwin') {
+           executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+        } else {
+          // Fallback genérico para linux
+          executablePath = '/usr/bin/google-chrome-stable';
+        }
+      }
+
+      console.log(`Iniciando Chrome local em: ${executablePath}`);
+
       browser = await puppeteer.launch({
         headless: true,
-        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        executablePath: executablePath,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
     }
 
     const page: Page = await browser.newPage();
 
+    // Listener para fechar automaticamente alerts (boas práticas em scraping)
+    page.on('dialog', async dialog => {
+      console.log('Dialog detectado:', dialog.message());
+      await dialog.dismiss();
+    });
+
     await page.goto('https://ssw.inf.br/2/rastreamento_pf?#', {
-      waitUntil: 'domcontentloaded',
+      waitUntil: 'networkidle2', // Mais robusto que domcontentloaded
       timeout: 60000,
     });
 
     console.log("Aguardando o campo de CPF...");
     await page.waitForSelector('#cnpjdest', { timeout: 10000 });
-    console.log("Campo de CPF encontrado!");
-
+    
+    // Pequeno delay para garantir que scripts de input carregaram
+    await new Promise(r => setTimeout(r, 500)); 
+    
     await page.type('#cnpjdest', cpf);
     console.log("CPF preenchido!");
 
-    await page.click('#btn_rastrear');
-    console.log("Botão 'Rastrear' clicado!");
+    // Forçar clique via JavaScript é frequentemente mais robusto que page.click()
+    await page.evaluate(() => {
+      const btn = document.getElementById('btn_rastrear');
+      if (btn) btn.click();
+    });
+    console.log("Botão 'Rastrear' clicado via JS!");
 
     const tableSelector = 'table tbody';
+    const errorSelector = '.erro, .msg-erro, #msgErro'; // Hipotético, para tentar capturar erros visuais
 
     try {
-      await page.waitForSelector(tableSelector, { timeout: 30000 });
+      // Espera pela tabela OU por uma mensagem de erro (race condition)
+      // Como não sabemos o seletor de erro exato, focamos na tabela, mas tratamos o erro melhor
+      await page.waitForSelector(tableSelector, { timeout: 20000 }); // Reduzi para 20s para falhar mais rápido se não vier
     } catch {
-      console.error("Erro ao realizar scraping: Timeout ou falha ao encontrar a tabela.");
+      console.error("Timeout aguardando tabela. Verificando se há mensagens de erro na tela...");
+      
+      // Captura o texto do corpo para tentar identificar o problema
+      const pageText = await page.evaluate(() => document.body.innerText);
+      
       await browser.close();
-      const response: ApiResponse = { error: 'Erro ao realizar scraping. Tabela não encontrada.' };
-      return new Response(JSON.stringify(response), { status: 500 });
+      
+      // Se tiver texto indicando "não encontrado", retornamos 404
+      if (pageText.includes('Não encontrado') || pageText.includes('Nenhuma encomenda')) {
+         const response: ScrapingErrorResponse = { error: 'Nenhuma encomenda encontrada para este CPF.' };
+         return new Response(JSON.stringify(response), { status: 404 });
+      }
+
+      console.error("Conteúdo da página no timeout:", pageText.substring(0, 200) + "...");
+      const response: ScrapingErrorResponse = { error: 'Erro ao realizar scraping. O site demorou muito para responder ou não retornou dados.' };
+      return new Response(JSON.stringify(response), { status: 504 }); // Gateway Timeout
     }
 
     await page.waitForFunction(
       'document.querySelector("table tbody tr") !== null',
-      { timeout: 30000 }
+      { timeout: 10000 }
     );
 
     console.log("Tabela de resultados carregada com sucesso!");
 
     // Realiza a extração dos dados da tabela
     const encomendas: Encomenda[] = await page.evaluate(() => {
-      const encomendasList: { numero: string; data: string; status: string }[] = [];
+      const encomendasList: Encomenda[] = [];
       const rows = document.querySelectorAll('table tbody tr');
 
       rows.forEach((row) => {
         const cells = row.querySelectorAll('td');
         if (cells.length >= 3) {
-          const encomenda = {
-            numero: cells[0] ? cells[0].textContent?.trim() || 'Não disponível' : 'Não disponível',
-            data: cells[1] ? cells[1].textContent?.trim() || 'Não disponível' : 'Não disponível',
-            status: cells[2] ? cells[2].textContent?.trim() || 'Não disponível' : 'Não disponível',
+          const encomenda: Encomenda = {
+            numero: cells[0] ? cells[0].textContent?.trim() || '' : '',
+            data: cells[1] ? cells[1].textContent?.trim() || '' : '',
+            status: cells[2] ? cells[2].textContent?.trim() || '' : '',
           };
           encomendasList.push(encomenda);
         }
@@ -133,12 +170,12 @@ export async function GET(req: NextRequest): Promise<Response> {
 
     // Caso não haja encomendas, retorna erro 404
     if (encomendas.length === 0) {
-      const response: ApiResponse = { error: 'Nenhuma encomenda encontrada para este CPF.' };
+      const response: ScrapingErrorResponse = { error: 'Nenhuma encomenda encontrada para este CPF.' };
       return new Response(JSON.stringify(response), { status: 404 });
     }
 
     // Retorna os dados extraídos com sucesso
-    const response: ApiResponse = { 
+    const response: ScrapingSuccessResponse = { 
       status: 'sucesso', 
       data: encomendas, 
       message: 'Encomendas extraídas com sucesso!' 
@@ -154,7 +191,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     }
     
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    const response: ApiResponse = { 
+    const response: ScrapingErrorResponse = { 
       error: 'Erro ao realizar scraping. Tente novamente mais tarde.', 
       details: errorMessage 
     };

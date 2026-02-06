@@ -13,6 +13,7 @@ export default function SearchForm({ cpf, onCpfChange, onSubmit }: SearchFormPro
         type="text"
         value={cpf}
         onChange={(e) => onCpfChange(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
         placeholder="Digite o CPF (apenas números)"
         className="p-3 w-80 rounded-lg border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-roxo transition duration-200"
       />
