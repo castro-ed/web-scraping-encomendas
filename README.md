@@ -73,4 +73,3 @@ Para otimizar o desempenho e evitar a repetição de requisições ao scraping p
 - **Erro no CPF**: Se o CPF não for válido (não tiver 11 dígitos), a aplicação retorna uma mensagem de erro.
 - **Erro no scraping**: Caso o scraping falhe (exemplo: página fora do ar ou estrutura alterada), o sistema exibe uma mensagem de erro explicativa.
 - **Erros do servidor**: Caso algo inesperado aconteça no backend, o sistema também retorna uma mensagem de erro amigável para o usuário.
-
