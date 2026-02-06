@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer-core'; // Usando Puppeteer core para ambientes serverless (como o Vercel)
+import puppeteer from 'puppeteer'; // Usando Puppeteer completo
 
 const cache = new Map(); // Cache simples na memória (armazenando os resultados por 5 minutos)
 
@@ -41,13 +41,13 @@ export async function GET(req) {
 
     // Lançando o Puppeteer com as configurações apropriadas para Vercel e ambientes serverless
     const browser = await puppeteer.launch({
-      headless: true, // Roda o navegador em modo headless (sem interface gráfica)
+      headless: true,
       args: [
         '--no-sandbox', // Necessário para evitar problemas de sandbox em ambientes serverless
         '--disable-setuid-sandbox', // Outro parâmetro para garantir segurança e compatibilidade
       ],
       executablePath: process.env.VERCEL
-        ? '/opt/bin/chromium'  // Se estiver no Vercel, usa o caminho correto para o Chromium
+        ? '/opt/bin/chromium'  // Usando o caminho correto para o Chromium no Vercel
         : puppeteer.executablePath(),  // Se localmente, utiliza o caminho do Puppeteer instalado
       defaultViewport: null, // Usa o tamanho padrão de viewport do Puppeteer
       userDataDir: '/tmp/puppeteer_data',  // Diretório temporário no Vercel para armazenar dados do navegador
@@ -55,7 +55,6 @@ export async function GET(req) {
 
     const page = await browser.newPage(); // Cria uma nova aba no navegador
 
-    // Acessa a página de rastreamento
     await page.goto('https://ssw.inf.br/2/rastreamento_pf?#', {
       waitUntil: 'domcontentloaded', // Espera até o DOM ser completamente carregado
       timeout: 60000, // Timeout de 60 segundos
