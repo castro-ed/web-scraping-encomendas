@@ -15,34 +15,84 @@ O objetivo principal é buscar encomendas vinculadas a um CPF e apresentá-las a
 ## Tecnologias Utilizadas
 
 ### **Frontend**
+
 - **Next.js**: Utilizamos as API Routes do Next.js para realizar o scraping diretamente no backend da aplicação.
 - **TailwindCSS**: Para estilização da interface.
 - **React Hooks**: Utilizamos hooks do React (`useState`) para gerenciar os estados da aplicação, como o CPF do usuário, os dados das encomendas e os estados de carregamento e erro.
 
 ### **Backend / Web Scraping**
+
 - **Puppeteer**: Biblioteca de scraping que utiliza o Chrome em modo headless (sem interface gráfica) para acessar e extrair informações da página de rastreamento de encomendas.
 - **Next.js API Routes**: A funcionalidade de scraping é implementada dentro das **API Routes** do Next.js, o que facilita o gerenciamento da comunicação entre frontend e backend.
+- **Browserless.io**: Serviço de browser na nuvem utilizado em produção (Vercel) para executar o Puppeteer.
+
+## Deploy na Vercel com Browserless.io
+
+### Por que usar Browserless.io?
+
+O ambiente **Serverless da Vercel** não possui as bibliotecas do sistema (`libnss3.so`, `libatk`, etc.) necessárias para executar o Chromium localmente.
+
+A solução é usar o **Browserless.io** - um serviço de browser na nuvem que oferece:
+
+- ✅ Tier gratuito com 1000 minutos/mês
+- ✅ Conexão via WebSocket com Puppeteer
+- ✅ Compatibilidade total com Vercel
+
+### Configuração para Deploy
+
+1. **Criar conta no Browserless.io**:
+   - Acesse: https://www.browserless.io/
+   - Crie uma conta gratuita
+   - Copie seu **API Token** no dashboard
+
+2. **Configurar variável de ambiente no Vercel**:
+   - Acesse seu projeto no Vercel Dashboard
+   - Vá em **Settings** → **Environment Variables**
+   - Adicione: `BROWSERLESS_TOKEN` = `seu_token_aqui`
+
+3. **Deploy**:
+   ```bash
+   git push origin main
+   ```
+
+### Execução Local vs Produção
+
+| Ambiente              | Método                                  |
+| --------------------- | --------------------------------------- |
+| **Local**             | Usa o Chrome instalado na máquina       |
+| **Vercel (Produção)** | Conecta ao Browserless.io via WebSocket |
+
+O código detecta automaticamente o ambiente e usa o método apropriado.
 
 ## Como Rodar Localmente
 
 ### Pré-requisitos
+
 1. **Node.js**: Versão 14 ou superior instalada.
 2. **Git**: Para clonar o repositório.
+3. **Google Chrome**: Instalado no caminho padrão (ou ajuste o caminho no código).
 
 ### Passos para rodar o projeto
 
 1. Clone o repositório:
+
    ```bash
    git clone https://github.com/castro-ed/web-scraping-encomendas.git
    cd web-scraping-encomendas
 
+   ```
+
 2. Instale as dependências:
+
    ```bash
    npm install
+
+   ```
 
 3. Para rodar o servidor de desenvolvimento localmente, use o comando:
    ```bash
    npm run dev
+   ```
 
 ## Como Funciona
 
@@ -56,13 +106,16 @@ O objetivo principal é buscar encomendas vinculadas a um CPF e apresentá-las a
 ### Arquitetura do Projeto
 
 #### **Frontend**:
+
 - O frontend foi construído com **Next.js** utilizando **React** e **TailwindCSS**. O código foi organizado de maneira simples e funcional.
 - Utilizamos o estado do React para gerenciar a entrada do CPF, o estado de carregamento, os erros e os dados das encomendas.
 
 #### **Backend (Web Scraping)**:
+
 - Utilizamos **Puppeteer** para fazer o scraping da página de rastreamento de encomendas.
 - O backend é implementado dentro das **API Routes** do Next.js.
 - O scraping é feito de maneira assíncrona, e a resposta é enviada ao frontend com os dados extraídos.
+- Em produção, o Puppeteer conecta-se ao **Browserless.io** para contornar as limitações do ambiente serverless.
 
 ## Cache de Resultados (Otimização)
 
@@ -73,3 +126,4 @@ Para otimizar o desempenho e evitar a repetição de requisições ao scraping p
 - **Erro no CPF**: Se o CPF não for válido (não tiver 11 dígitos), a aplicação retorna uma mensagem de erro.
 - **Erro no scraping**: Caso o scraping falhe (exemplo: página fora do ar ou estrutura alterada), o sistema exibe uma mensagem de erro explicativa.
 - **Erros do servidor**: Caso algo inesperado aconteça no backend, o sistema também retorna uma mensagem de erro amigável para o usuário.
+- **Erro de configuração**: Se o `BROWSERLESS_TOKEN` não estiver configurado no Vercel, o sistema retorna uma mensagem indicando a necessidade de configuração.

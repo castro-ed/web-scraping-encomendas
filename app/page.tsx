@@ -134,7 +134,7 @@ export default function Home() {
                   <tbody>
                     {/* Mapeia e exibe cada encomenda */}
                     {encomendas.map((encomenda, index) => (
-                      <tr key={index} className="border-b hover:bg-gray-100 transition duration-200">
+                      <tr key={index} className="border-b transition duration-200">
                         <td className="px-6 py-4">{encomenda.numero}</td>
                         <td className="px-6 py-4">{encomenda.data}</td>
                         <td className="px-6 py-4">{encomenda.status}</td>
