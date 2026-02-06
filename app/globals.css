@@ -90,7 +90,7 @@ button {
 }
 
 button:hover {
-  background-color: #4b307c;
+  background-color: #8b6bb8; /* Roxo mais claro para hover */
 }
 
 button:active {
@@ -123,6 +123,7 @@ th {
 
 tr:hover {
   background-color: #e8dff5; /* Roxo claro para hover */
+  color: #000000; /* Texto preto para contraste */
 }
 
 /* Ajuste no botão de "Detalhes" */
