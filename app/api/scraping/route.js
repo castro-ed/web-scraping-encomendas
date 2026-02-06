@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer'; // Usando Puppeteer completo
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 const cache = new Map(); // Cache simples na memória (armazenando os resultados por 5 minutos)
 
@@ -41,16 +42,17 @@ export async function GET(req) {
 
     // Lançando o Puppeteer com as configurações apropriadas para Vercel e ambientes serverless
     const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox', // Necessário para evitar problemas de sandbox em ambientes serverless
-        '--disable-setuid-sandbox', // Outro parâmetro para garantir segurança e compatibilidade
-      ],
+      headless: chromium.headless,
+      args: process.env.VERCEL
+        ? chromium.args
+        : [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+          ],
       executablePath: process.env.VERCEL
-        ? '/opt/bin/chromium'  // Caminho para o Chromium no Vercel
-        : puppeteer.executablePath(),  // Se localmente, utiliza o caminho do Puppeteer instalado
-      defaultViewport: null, // Usa o tamanho padrão de viewport do Puppeteer
-      userDataDir: '/tmp/puppeteer_data',  // Diretório temporário no Vercel para armazenar dados do navegador
+        ? await chromium.executablePath()
+        : 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', // Caminho local do Chrome no Windows
+      defaultViewport: chromium.defaultViewport,
     });
 
     const page = await browser.newPage(); // Cria uma nova aba no navegador
