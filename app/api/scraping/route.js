@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core'; // Puppeteer core para ambientes serverless
+import chrome from 'chrome-aws-lambda'; // Importa o Chrome otimizado para o AWS Lambda
 
 // Cache simples na memória (armazenando os resultados dos CPFs por 5 minutos)
 const cache = new Map();
@@ -40,9 +41,12 @@ export async function GET(req) {
   try {
     console.log("Acessando a página de rastreamento...");
 
+    // Configuramos o Puppeteer para usar o Chrome adequado no Vercel
     const browser = await puppeteer.launch({
-      headless: true, 
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true,
+      args: process.env.VERCEL ? chrome.args : [], // Se estiver no Vercel, usa o Chrome adaptado para AWS Lambda
+      executablePath: process.env.VERCEL ? await chrome.executablePath : puppeteer.executablePath(), // Caminho correto do Chrome dependendo do ambiente
+      defaultViewport: chrome.defaultViewport, // Usando o padrão de viewport do chrome-aws-lambda
     });
 
     const page = await browser.newPage();
